@@ -1,5 +1,5 @@
 // Offline cache for ONE MORE MOVE. Bump VERSION on every release so players get the update.
-const VERSION = 'omm-v2';
+const VERSION = 'omm-v3';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>ONE MORE MOVE</title><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0f1115"><link rel="icon" href="icon-192.png">
+<style>
+:root{--bg:#0f1115;--panel:#181b22;--cell:#1f232c;--wall:#3a4150;--fg:#e8eaf0;--dim:#7c8494;--a:#4cc9f0;--b:#ffb703;--cc:#b388ff;--ok:#3ddc97;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:light){:root:not([data-theme=dark]){--bg:#f4f5f7;--panel:#e6e8ee;--cell:#d9dce4;--wall:#8a92a3;--fg:#14161b;--dim:#6a7183;--a:#0a8fbf;--b:#d98f00;--cc:#7a4dd8;--ok:#14a06a}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font:600 15px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;touch-action:none;overflow:hidden}
+#app{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:14px 16px 18px}
+header{width:100%;max-width:480px;display:flex;justify-content:space-between;align-items:center;letter-spacing:.14em;font-size:13px;color:var(--dim)}
+header b{color:var(--fg)}
+#echo{display:flex;gap:10px;align-items:center;padding:8px 18px;border-radius:999px;background:var(--panel);font-size:13px;letter-spacing:.14em;color:var(--dim)}
+#echo span{font-size:26px;line-height:1;color:var(--fg);min-width:26px;text-align:center}
+#stage{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px}
+#board{position:relative;background:var(--panel);border-radius:14px;padding:0}
+.cell,.wall,.t{position:absolute;left:0;top:0;width:var(--c);height:var(--c)}
+.cell::after,.wall::after{content:"";position:absolute;inset:3px;border-radius:9px;background:var(--cell)}
+.wall::after{background:var(--wall)}
+.t{transition:transform var(--d,.16s) ease-out;display:grid;place-items:center;z-index:2}
+.t i{display:block;width:66%;height:66%;background:var(--k)}
+.t.A{--k:var(--a)}.t.A i{border-radius:50%}
+.t.B{--k:var(--b)}.t.B i{border-radius:22%}
+.t.C{--k:var(--cc)}.t.C i{clip-path:polygon(50% 6%,96% 92%,4% 92%)}
+.t.pop{animation:pop .24s ease-in forwards}
+@keyframes pop{0%{transform:var(--tf) scale(1);opacity:1}40%{transform:var(--tf) scale(1.35)}100%{transform:var(--tf) scale(0);opacity:0}}
+#board{transition:box-shadow .15s}#board[data-e=U]{box-shadow:inset 0 6px 0 var(--ok)}#board[data-e=D]{box-shadow:inset 0 -6px 0 var(--ok)}#board[data-e=L]{box-shadow:inset 6px 0 0 var(--ok)}#board[data-e=R]{box-shadow:inset -6px 0 0 var(--ok)}
+#board[data-e] .t::before{content:"";position:absolute;inset:16%;border-radius:30%;background:var(--k);opacity:.4;filter:blur(7px)}
+#board[data-e] .t i{filter:brightness(1.3)}
+#echo{transition:background .12s,color .12s}#echo.fire{background:var(--fg);color:var(--bg)}#echo.fire span{color:var(--bg)}
+#hint.coach{color:var(--fg);background:var(--panel);padding:8px 14px;border-radius:12px}
+#ghost{position:absolute;inset:0;display:grid;place-items:center;font-size:calc(var(--c)*1.6);color:var(--fg);opacity:0;pointer-events:none;z-index:5}
+#hint{min-height:20px;font-size:13px;font-weight:500;color:var(--dim);text-align:center;max-width:320px}
+footer{display:flex;gap:10px}
+button{font:inherit;border:0;border-radius:14px;padding:14px 22px;min-width:56px;background:var(--panel);color:var(--fg);cursor:pointer}
+button:disabled{opacity:.3}
+#ov{position:fixed;inset:0;display:none;place-items:center;background:color-mix(in srgb,var(--bg) 88%,transparent);z-index:9}
+#ov.on{display:grid}
+#ov div{text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center}
+#ov h2{margin:0;letter-spacing:.2em;font-size:18px}.stars{font-size:44px;letter-spacing:.2em;color:var(--b)}
+#ov p{margin:0;color:var(--dim)}#ov .row{display:flex;gap:10px}
+#ov button.main{background:var(--fg);color:var(--bg)}
+h1{margin:0;font-size:38px;line-height:1.05;letter-spacing:.14em;text-align:center}h2{margin:0;letter-spacing:.2em;font-size:16px}.tag{margin:0 0 14px;color:var(--dim);letter-spacing:.2em;font-size:12px}
+.scr{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:calc(24px + env(safe-area-inset-top,0px)) 24px calc(24px + env(safe-area-inset-bottom,0px));background:var(--bg);z-index:20;overflow:auto;touch-action:pan-y}.scr.on{display:flex}
+.scr>button{width:100%;max-width:280px}.main{background:var(--fg);color:var(--bg)}
+#lsel,#help{justify-content:flex-start}#grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%;max-width:380px}
+.lb{padding:10px 0;display:flex;flex-direction:column;gap:2px;align-items:center;min-width:0}.lb small{color:var(--b);font-size:11px;letter-spacing:.05em}.lock{opacity:.35}
+details{width:100%;max-width:420px;background:var(--panel);border-radius:12px;padding:12px 16px}summary{cursor:pointer;letter-spacing:.12em;font-size:13px}details p{margin:10px 0 0;font-weight:500;color:var(--dim);line-height:1.55;font-size:14px}
+.ic{padding:6px 12px;min-width:0;font-size:18px;margin-right:10px}
+</style></head><body>
+<div id="app">
+<header><span><button class="ic" id="pz" aria-label="Menu">☰</button>LEVEL <b id="lv">1</b></span><span>MOVES <b id="mv">0</b> · PAR <b id="par">0</b></span></header>
+<div id="stage"><div id="echo">ECHO<span id="ea">·</span></div><div id="board"></div><div id="hint"></div></div>
+<footer><button id="prev" aria-label="Previous level">‹</button><button id="rs">↺ RESTART</button><button id="next" aria-label="Next level">›</button></footer>
+</div>
+<div id="ov"><div id="ovc"></div></div>
+<div class="scr on" id="menu"><h1 id="ttl"></h1><p class="tag">Plan. Move. Echo.</p><button class="main" id="play">PLAY</button><button id="lvls">LEVELS <span id="tot"></span></button><button class="how">HOW TO PLAY</button><button class="snd"></button></div>
+<div class="scr" id="lsel"><h2>LEVELS</h2><div id="grid"></div><button id="lback">BACK</button></div>
+<div class="scr" id="pause"><h2>PAUSED</h2><button class="main" id="resume">RESUME</button><button id="prs">↺ RESTART</button><button id="plv">LEVELS</button><button class="how">HOW TO PLAY</button><button class="snd"></button><button id="pmn">MAIN MENU</button></div>
+<div class="scr" id="help"><h2>HOW TO PLAY</h2>
+<details open><summary>THE GOAL</summary><p>Clear the board. Every tile has exactly one twin with the same shape and colour. Make each pair meet so both vanish.</p></details>
+<details><summary>MOVING</summary><p>Swipe (or use arrow keys / WASD). Every tile on the board moves one step in that direction. Tiles in a line move together. Walls, dark obstacles and tiles that cannot move block the tiles pushing into them. A swipe that moves nothing is ignored: it costs no move.</p></details>
+<details><summary>MATCHING</summary><p>A match happens when a tile is pushed into a stopped tile of the same shape and colour. Both vanish. Tiles travelling side by side never match, so one of them must be stopped by a wall, an obstacle or another tile. Different tiles never vanish; they only block each other.</p></details>
+<details><summary>THE ECHO</summary><p>After every move, your previous move repeats by itself. The first move of a level has no echo. The ECHO arrow at the top shows which direction will repeat after your next move. It is always exact, never random. The echo is free: only your own swipes count as moves. If your move clears the board, no echo follows.</p></details>
+<details><summary>STARS ★</summary><p>Every level has a PAR: the fewest moves it can be solved in, found by checking every possibility. ★★★ finish in par moves or fewer. ★★ finish within 2 moves of par. ★ finish at all. Your best score is saved, and a level unlocks when you earn at least one star on the one before it. Every level can be completed for free.</p></details>
+<details><summary>STUCK?</summary><p>If no solution remains, the game tells you. Restart is one tap and instant, and the Echo resets with it. Mistakes are part of the puzzle: plan one move ahead, and remember what the echo will do.</p></details>
+<details><summary>SHAPES</summary><p>● circle, ■ square, ▲ triangle. Each colour also has its own shape, so you never need to tell colours apart.</p></details>
+<button id="hback">BACK</button></div>
+<script>
+/*ENGINE*/
+/*LEVELS*/
+const {play,isDead,stars,makeState}=ENG;
+const AR={U:'↑',D:'↓',L:'←',R:'→'},$=id=>document.getElementById(id);
+const HINTS=['Swipe. Every tile moves one step. Matching tiles that meet vanish.','After each move, your previous move repeats. Watch the ECHO arrow.','The first move has no echo. Plan the order of your moves.','Walls and obstacles stop tiles. Use them to line a pair up.','The echo can undo your move. Sometimes that is the point.'];
+let li=0,st,T=[],busy=false,pend=null,gen=0,cell=60,onPath=true;
+const COACH={0:['Swipe {n}. Every tile moves one step.','Swipe {n} again. A tile pushing into its blocked match makes both vanish.'],1:['Swipe {n}. Your first move has no echo.','Swipe {n}. Watch the ECHO: after your move, your previous move repeats by itself.','Swipe {n}. The echo finishes the match for you.']};
+function coach(){const lv=LEVELS[li],c=COACH[li]&&COACH[li][st.moves];const h=$('hint');
+ if(c&&onPath&&!st.won){h.textContent=c.replace('{n}',AR[lv.solution[st.moves]]);h.className='coach'}else{h.textContent=HINTS[li]||'';h.className=''}}
+const SAVE='omm_v1';let save={stars:{},best:{}};
+try{save=Object.assign(save,JSON.parse(localStorage.getItem(SAVE)||'{}'))}catch(e){}
+const persist=()=>{try{localStorage.setItem(SAVE,JSON.stringify(save))}catch(e){}};
+const unlocked=i=>i===0||(save.stars[LEVELS[i-1].id]||0)>0;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const pos=t=>`translate(${t.c*cell}px,${t.r*cell}px)`;
+function place(t){t.el.style.transform=pos(t);t.el.style.setProperty('--tf',pos(t))}
+function layout(){const g=LEVELS[li].rows,R=g.length,C=g[0].length;
+ cell=Math.floor(Math.min((innerWidth-32)/C,(innerHeight*.5)/R,110));
+ const b=$('board');b.style.width=cell*C+'px';b.style.height=cell*R+'px';b.style.setProperty('--c',cell+'px');
+ $('ghost')&&($('ghost').style.fontSize=cell*1.6+'px');
+ b.querySelectorAll('.cell,.wall').forEach(e=>e.style.transform=`translate(${e.dataset.c*cell}px,${e.dataset.r*cell}px)`);T.forEach(t=>!t.dead&&place(t))}
+function hud(){$('lv').textContent=LEVELS[li].id;$('mv').textContent=st.moves;$('par').textContent=LEVELS[li].solution.length;
+ $('ea').textContent=st.last?AR[st.last]:'·';coach();$('prev').disabled=li===0;$('next').disabled=li>=LEVELS.length-1||!unlocked(li+1)}
+function load(i){if(st){if(i===li)track('restarts');else if(!st.won&&st.moves>0)track('abandon')}gen++;busy=false;pend=null;li=i;st=makeState(LEVELS[i].rows);T=[];track('starts');t0=Date.now();
+ const b=$('board');b.innerHTML='<div id="ghost"></div>';$('ov').classList.remove('on');onPath=true;
+ LEVELS[i].rows.forEach((row,r)=>[...row].forEach((ch,c)=>{
+  const mk=(cls)=>{const e=document.createElement('div');e.className=cls;e.dataset.r=r;e.dataset.c=c;b.appendChild(e);return e};
+  mk(ch==='#'?'wall':'cell');
+  if(ch!=='.'&&ch!=='#'){const el=document.createElement('div');el.className='t '+ch;el.innerHTML='<i></i>';b.appendChild(el);T.push({el,r,c})}}));
+ layout();hud()}
+async function run(d){
+ if(busy){pend=d;return}
+ const r=play(st,d);
+ if(r.noop){SFX.fail();$('board').animate([{transform:'translateX(0)'},{transform:'translateX(-5px)'},{transform:'translateX(5px)'},{transform:'translateX(0)'}],{duration:150});return}
+ const my=gen;busy=true;if(d!==LEVELS[li].solution[st.moves])onPath=false;st=r.state;$('mv').textContent=st.moves;
+ const bd=$('board');
+ for(const ev of r.events){
+  const echo=ev.type==='echo';echo?SFX.echo():SFX.move();if(ev.matches)setTimeout(SFX.match,echo?170:60);
+  if(echo){$('ea').textContent=AR[ev.dir];$('echo').classList.add('fire');$('ghost').textContent=AR[ev.dir];
+   $('ghost').animate([{opacity:0,transform:'scale(.7)'},{opacity:.5,transform:'scale(1)',offset:.25},{opacity:.5,offset:.75},{opacity:0}],{duration:640});
+   bd.dataset.e=ev.dir;await sleep(170);if(my!==gen)return}
+  bd.style.setProperty('--d',echo?'.32s':'.16s');
+  const moves=ev.tiles.map(x=>({t:T.find(t=>!t.dead&&t.r===x.from[0]&&t.c===x.from[1]),x}));
+  for(const {t,x} of moves){if(!t)continue;if(x.matched){t.dead=true;t.el.classList.add('pop');setTimeout(()=>t.el.remove(),260)}else{t.r=x.to[0];t.c=x.to[1];place(t)}}
+  await sleep(echo?400:190);if(my!==gen)return;
+  if(echo){delete bd.dataset.e;$('echo').classList.remove('fire')}}
+ busy=false;hud();
+ if(st.won){await sleep(260);if(my===gen)win()}
+ else if(isDead(st)){$('hint').textContent='No solution from here. Restart.';$('hint').className='coach';SFX.dead();track('dead')}
+ else if(pend){const p=pend;pend=null;run(p)}}
+function win(){const lv=LEVELS[li],opt=lv.solution.length,s=stars(st.moves,opt);SFX.win();track('wins');track('moves',st.moves);track('ms',Date.now()-t0);
+ const prev=save.stars[lv.id]||0;if(s>prev)save.stars[lv.id]=s;
+ if(!save.best[lv.id]||st.moves<save.best[lv.id])save.best[lv.id]=st.moves;persist();
+ const last=li>=LEVELS.length-1;
+ $('ovc').innerHTML=`<h2>CLEARED</h2><div class="stars">${'★'.repeat(s)}<span style="opacity:.25">${'★'.repeat(3-s)}</span></div><p>${st.moves} moves · par ${opt} · best ${save.best[lv.id]}</p><div class="row"><button id="again">↺</button><button class="main" id="go">${last?'MORE SOON':'NEXT ›'}</button></div>`;
+ $('ov').classList.add('on');$('again').onclick=()=>load(li);$('go').onclick=()=>last?scr('lsel'):load(li+1);hud()}
+const DIR={ArrowUp:'U',ArrowDown:'D',ArrowLeft:'L',ArrowRight:'R',w:'U',s:'D',a:'L',d:'R'};
+addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelector('.scr.on')?closeScr():scr('pause');return}if(document.querySelector('.scr.on'))return;if(e.key==='r'||e.key==='R')return load(li);const d=DIR[e.key];if(d&&!$('ov').classList.contains('on')){e.preventDefault();run(d)}});
+let sx,sy;addEventListener('pointerdown',e=>{sx=e.clientX;sy=e.clientY});
+addEventListener('pointerup',e=>{if(sx==null||e.target.closest('button'))return;const dx=e.clientX-sx,dy=e.clientY-sy;sx=null;
+ if(Math.max(Math.abs(dx),Math.abs(dy))<24||$('ov').classList.contains('on')||document.querySelector('.scr.on'))return;
+ run(Math.abs(dx)>Math.abs(dy)?(dx>0?'R':'L'):(dy>0?'D':'U'))});
+$('rs').onclick=()=>load(li);$('prev').onclick=()=>li>0&&load(li-1);$('next').onclick=()=>unlocked(li+1)&&load(li+1);
+addEventListener('resize',layout);
+const TITLE='ONE MORE MOVE';document.title=TITLE;$('ttl').innerHTML=TITLE.replace(/ (MOVE|MORE)/,'<br>$1').replace('<br>MORE MOVE','<br>MORE MOVE');
+const STK='omm_stats';let stats={},t0=Date.now();try{stats=JSON.parse(localStorage.getItem(STK)||'{}')}catch(e){}
+function track(k,n=1){const id=LEVELS[li].id,s=stats[id]=stats[id]||{starts:0,wins:0,restarts:0,dead:0,abandon:0,moves:0,ms:0};s[k]+=n;try{localStorage.setItem(STK,JSON.stringify(stats))}catch(e){}}
+let AC;function tone(f,d,ty='sine',v=.07,at=0){if(save.sound===false)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain(),n=AC.currentTime+at;o.type=ty;o.frequency.value=f;o.connect(g);g.connect(AC.destination);g.gain.setValueAtTime(v,n);g.gain.exponentialRampToValueAtTime(.0001,n+d);o.start(n);o.stop(n+d)}catch(e){}}
+const SFX={move:()=>tone(280,.06,'triangle'),echo:()=>tone(190,.13,'sine',.06),match:()=>{tone(520,.12);tone(780,.16,'sine',.06,.07)},win:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.22,'sine',.07,i*.1)),fail:()=>tone(110,.1,'sawtooth',.035),dead:()=>{tone(200,.15,'square',.035);tone(140,.25,'square',.035,.13)}};
+let cur=null,prv=null;
+function scr(id){prv=cur;cur=id;document.querySelectorAll('.scr').forEach(e=>e.classList.toggle('on',e.id===id));if(id==='lsel')grid();if(id==='menu')menu();snd()}
+function closeScr(){cur=null;document.querySelectorAll('.scr').forEach(e=>e.classList.remove('on'))}
+function snd(){document.querySelectorAll('.snd').forEach(b=>b.textContent='SOUND '+(save.sound===false?'OFF':'ON'))}
+function grid(){const g=$('grid');g.innerHTML='';LEVELS.forEach((lv,i)=>{const b=document.createElement('button'),s=save.stars[lv.id]||0,u=unlocked(i);b.className='lb'+(u?'':' lock');b.disabled=!u;b.innerHTML=`<b>${lv.id}</b><small>${u?'★'.repeat(s)+'☆'.repeat(3-s):'🔒'}</small>`;b.onclick=()=>{closeScr();load(i)};g.appendChild(b)})}
+const nextIdx=()=>{const i=LEVELS.findIndex(l=>!(save.stars[l.id]>0));return i<0?0:i};
+function menu(){const t=LEVELS.reduce((n,l)=>n+(save.stars[l.id]||0),0);$('tot').textContent='★ '+t+'/'+LEVELS.length*3;$('play').textContent=t?'CONTINUE':'PLAY'}
+$('play').onclick=()=>{const i=nextIdx();closeScr();if(!(i===li&&st.moves>0&&!st.won))load(i)};
+$('lvls').onclick=()=>scr('lsel');$('lback').onclick=()=>scr(prv==='pause'?'pause':'menu');
+document.querySelectorAll('.how').forEach(b=>b.onclick=()=>scr('help'));$('hback').onclick=()=>scr(prv&&prv!=='help'?prv:'menu');
+document.querySelectorAll('.snd').forEach(b=>b.onclick=()=>{save.sound=save.sound===false;persist();snd();SFX.match()});
+$('pz').onclick=()=>scr('pause');$('resume').onclick=closeScr;$('prs').onclick=()=>{closeScr();load(li)};$('plv').onclick=()=>scr('lsel');$('pmn').onclick=()=>scr('menu');
+load(nextIdx());scr('menu');
+if('serviceWorker' in navigator&&location.protocol==='https:'){try{navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}}
+</script></body></html>

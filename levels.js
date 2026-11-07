@@ -1,0 +1,35 @@
+'use strict';
+// Campaign: levels 1-5 teach; 6-30 are solver-curated. Legend: '.' empty, '#' obstacle, letters = tile colours (2 each).
+// Every level is checked by test.js: solvable, recorded solution wins and is optimal.
+module.exports = [
+  { id: 1, rows: [".A.","...",".A."], solution: 'UU' },
+  { id: 2, rows: [".#.A","....","A...","...."], solution: 'RUR' },
+  { id: 3, rows: ["A#..","....","#...","A..."], solution: 'DRD' },
+  { id: 4, rows: ["AB..","....","B.##","A..."], solution: 'RUUR' },
+  { id: 5, rows: ["B#...","..#.A","A..#.","...B."], solution: 'DDULLD' },
+  { id: 6, rows: ["B...","#.A.","A...","B..."], solution: 'RDRD' },
+  { id: 7, rows: ["....","#.BA","..AB","...."], solution: 'LURR' },
+  { id: 8, rows: ["AB..",".#..",".B.A","...."], solution: 'URUR' },
+  { id: 9, rows: [".A.#",".B..",".A..","#B.."], solution: 'LRRUU' },
+  { id: 10, rows: ["B..#","..#A",".AB.","...."], solution: 'DRRUU' },
+  { id: 11, rows: ["AB...","...#A","...##","...B.",".#..."], solution: 'LUULL' },
+  { id: 12, rows: ["....B",".....",".AC.A","..C#.",".B.#."], solution: 'LDLDD' },
+  { id: 13, rows: ["...#.","B#..A","A#...","....B"], solution: 'DRRULL' },
+  { id: 14, rows: [".CAB","....","B...",".##C",".A.."], solution: 'RRULUL' },
+  { id: 15, rows: ["..#.A",".....","B..C.","#C#..","..A.B"], solution: 'URDRDD' },
+  { id: 16, rows: ["CB.A",".#..","#.C.","B...","..A."], solution: 'RDDDRD' },
+  { id: 17, rows: ["..B.","...A",".C.B",".A..","..#C"], solution: 'LLULDD' },
+  { id: 18, rows: ["A..#.",".B#..","A....",".C.BC","....#"], solution: 'DRDLLD' },
+  { id: 19, rows: ["..B.C","..A#.","..#.A","....B","C...."], solution: 'LDLUULU' },
+  { id: 20, rows: ["..A..","C...B",".#..#",".B..C","..A.."], solution: 'DDDLDLL' },
+  { id: 21, rows: ["B.#CA",".....","A#.B.","....#","C...."], solution: 'DDRDLLL' },
+  { id: 22, rows: [".ACB","B...","....",".##.",".CA."], solution: 'LURRUUR' },
+  { id: 23, rows: ["B.#CA","...#.","A..B.",".#...","C...."], solution: 'RDRRDDR' },
+  { id: 24, rows: ["BA..C","#...B","....#","C....","..#A."], solution: 'UURRURD' },
+  { id: 25, rows: ["BA..C","#...B","#....","C....","..#A."], solution: 'UURULLU' },
+  { id: 26, rows: [".A.#.","B#...","#.CA.","..B..","C...."], solution: 'UDRDDRD' },
+  { id: 27, rows: [".A...","..#..","B..C.","#C#..",".A..B"], solution: 'RUDDDRR' },
+  { id: 28, rows: [".CBC.","....#",".....","A.#A.","B#..."], solution: 'UDLLDDR' },
+  { id: 29, rows: ["..AB.",".B.#.","..#A.",".#.#.","....."], solution: 'RULDLURR' },
+  { id: 30, rows: [".BCA",".AB.","....","...#","#..C"], solution: 'DDULULUU' }
+];

@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>ONE MORE MOVE</title><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0f1115"><link rel="icon" href="icon-192.png">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ONE MORE MOVE</title><link rel="manifest" href="manifest.webmanifest"><meta name="color-scheme" content="dark light"><meta name="theme-color" content="#0f1115"><link rel="icon" href="icon-192.png">
 <style>
 :root{--bg:#0f1115;--panel:#181b22;--cell:#1f232c;--wall:#3a4150;--fg:#e8eaf0;--dim:#7c8494;--a:#4cc9f0;--b:#ffb703;--cc:#b388ff;--ok:#3ddc97;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media(prefers-color-scheme:light){:root:not([data-theme=dark]){--bg:#f4f5f7;--panel:#e6e8ee;--cell:#d9dce4;--wall:#8a92a3;--fg:#14161b;--dim:#6a7183;--a:#0a8fbf;--b:#d98f00;--cc:#7a4dd8;--ok:#14a06a}}
+@media(prefers-color-scheme:light){:root:not([data-theme=dark]){--bg:#f4f5f7;--panel:#e6e8ee;--cell:#d9dce4;--wall:#8a92a3;--fg:#14161b;--dim:#5d6475;--a:#00709a;--b:#8f5f00;--cc:#7a4dd8;--ok:#14a06a}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font:600 15px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;touch-action:none;overflow:hidden}
 #app{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:14px 16px 18px}
@@ -14,8 +14,9 @@ header b{color:var(--fg)}
 #echo span{font-size:26px;line-height:1;color:var(--fg);min-width:26px;text-align:center}
 #stage{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px}
 #board{position:relative;background:var(--panel);border-radius:14px;padding:0}
-.cell,.wall,.t{position:absolute;left:0;top:0;width:var(--c);height:var(--c)}
-.cell::after,.wall::after{content:"";position:absolute;inset:3px;border-radius:9px;background:var(--cell)}
+.cell,.wall,.gate,.t{position:absolute;left:0;top:0;width:var(--c);height:var(--c)}
+.cell::after,.wall::after,.gate::after{content:"";position:absolute;inset:3px;border-radius:9px;background:var(--cell)}
+.gate::after{box-shadow:inset 0 0 0 2px var(--b)}.gate::before{content:attr(data-a);position:absolute;inset:0;display:grid;place-items:center;font-size:calc(var(--c)*.5);color:var(--b);z-index:1}
 .wall::after{background:var(--wall)}
 .t{transition:transform var(--d,.16s) ease-out;display:grid;place-items:center;z-index:2}
 .t i{display:block;width:66%;height:66%;background:var(--k)}
@@ -46,11 +47,14 @@ h1{margin:0;font-size:38px;line-height:1.05;letter-spacing:.14em;text-align:cent
 #lsel,#help{justify-content:flex-start}#grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%;max-width:380px}
 .lb{padding:10px 0;display:flex;flex-direction:column;gap:2px;align-items:center;min-width:0}.lb small{color:var(--b);font-size:11px;letter-spacing:.05em}.lock{opacity:.35}
 details{width:100%;max-width:420px;background:var(--panel);border-radius:12px;padding:12px 16px}summary{cursor:pointer;letter-spacing:.12em;font-size:13px}details p{margin:10px 0 0;font-weight:500;color:var(--dim);line-height:1.55;font-size:14px}
-.ic{padding:6px 12px;min-width:0;font-size:18px;margin-right:10px}
+.t,.t i{will-change:transform}
+button:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){.t{transition:none!important}.t.pop{animation-duration:.01s}}
+.ic{padding:11px 15px;min-width:44px;min-height:44px;font-size:18px;margin-right:10px}
 </style></head><body>
 <div id="app">
 <header><span><button class="ic" id="pz" aria-label="Menu">☰</button>LEVEL <b id="lv">1</b></span><span>MOVES <b id="mv">0</b> · PAR <b id="par">0</b></span></header>
-<div id="stage"><div id="echo">ECHO<span id="ea">·</span></div><div id="board"></div><div id="hint"></div></div>
+<div id="stage"><div id="echo">ECHO<span id="ea">·</span></div><div id="board" aria-label="Puzzle board"></div><div id="hint" aria-live="polite"></div></div>
 <footer><button id="prev" aria-label="Previous level">‹</button><button id="rs">↺ RESTART</button><button id="next" aria-label="Next level">›</button></footer>
 </div>
 <div id="ov"><div id="ovc"></div></div>
@@ -61,6 +65,7 @@ details{width:100%;max-width:420px;background:var(--panel);border-radius:12px;pa
 <details open><summary>THE GOAL</summary><p>Clear the board. Every tile has exactly one twin with the same shape and colour. Make each pair meet so both vanish.</p></details>
 <details><summary>MOVING</summary><p>Swipe (or use arrow keys / WASD). Every tile on the board moves one step in that direction. Tiles in a line move together. Walls, dark obstacles and tiles that cannot move block the tiles pushing into them. A swipe that moves nothing is ignored: it costs no move.</p></details>
 <details><summary>MATCHING</summary><p>A match happens when a tile is pushed into a stopped tile of the same shape and colour. Both vanish. Tiles travelling side by side never match, so one of them must be stopped by a wall, an obstacle or another tile. Different tiles never vanish; they only block each other.</p></details>
+<details><summary>ONE-WAY GATES (LEVEL 16+)</summary><p>A cell with an arrow is a one-way gate. A tile can only enter it by moving in the arrow direction. From any other side it blocks like a wall, and the echo obeys the same rule. A tile standing on a gate can leave in any direction. Gates never move, and two tiles do not match through a closed gate side.</p></details>
 <details><summary>THE ECHO</summary><p>After every move, your previous move repeats by itself. The first move of a level has no echo. The ECHO arrow at the top shows which direction will repeat after your next move. It is always exact, never random. The echo is free: only your own swipes count as moves. If your move clears the board, no echo follows.</p></details>
 <details><summary>STARS ★</summary><p>Every level has a PAR: the fewest moves it can be solved in, found by checking every possibility. ★★★ finish in par moves or fewer. ★★ finish within 2 moves of par. ★ finish at all. Your best score is saved, and a level unlocks when you earn at least one star on the one before it. Every level can be completed for free.</p></details>
 <details><summary>STUCK?</summary><p>If no solution remains, the game tells you. Restart is one tap and instant, and the Echo resets with it. Mistakes are part of the puzzle: plan one move ahead, and remember what the echo will do.</p></details>
@@ -83,7 +88,10 @@ const tileCount = g => g.reduce((n, r) => n + r.filter(isTile).length, 0);
 // 3) From that snapshot, a blocked tile whose target holds a blocked same-colour tile matches;
 //    all matches are decided simultaneously. 4) Movers shift one cell; matched tiles vanish.
 //    Vacated cells trigger NO further movement in this step.
-function step(g, d) {
+// ONE-WAY GATES: terrain, not tiles. A gate cell can only be ENTERED by a tile moving in its arrow direction;
+// from any other direction it blocks like a wall (and a blocked contact is not a collision, so no match).
+// A tile standing on a gate may leave in any direction. Gates never move and live in state.gates.
+function step(g, d, gates) {
   const [dr, dc] = DIRS[d], H = g.length, W = g[0].length;
   const mv = new Set();
   for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) if (isTile(g[r][c])) mv.add(r * W + c);
@@ -92,6 +100,7 @@ function step(g, d) {
     for (const k of [...mv]) {
       const nr = ((k / W) | 0) + dr, nc = (k % W) + dc;
       const blocked = nr < 0 || nr >= H || nc < 0 || nc >= W || g[nr][nc] === '#' ||
+        (gates && gates[nr * W + nc] && gates[nr * W + nc] !== d) ||
         (isTile(g[nr][nc]) && !mv.has(nr * W + nc));
       if (blocked) { mv.delete(k); changed = true; }
     }
@@ -101,7 +110,7 @@ function step(g, d) {
     if (!isTile(g[r][c]) || mv.has(r * W + c)) continue;
     const nr = r + dr, nc = c + dc;
     if (nr < 0 || nr >= H || nc < 0 || nc >= W) continue;
-    if (g[nr][nc] === g[r][c] && !mv.has(nr * W + nc)) { matched.add(r * W + c); matched.add(nr * W + nc); }
+    if (g[nr][nc] === g[r][c] && !mv.has(nr * W + nc) && !(gates && gates[nr * W + nc] && gates[nr * W + nc] !== d)) { matched.add(r * W + c); matched.add(nr * W + nc); }
   }
   const out = g.map(r => r.map(ch => (isTile(ch) ? '.' : ch)));
   const tiles = []; // presentation trace only (does not affect rules): where each tile came from / went
@@ -115,23 +124,28 @@ function step(g, d) {
   return { grid: out, changed: mv.size > 0 || matched.size > 0, matches: matched.size / 2, tiles };
 }
 
-const makeState = rows => ({ grid: parse(rows), last: null, moves: 0, won: false });
+const GATE_DIR = { '^': 'U', 'v': 'D', '<': 'L', '>': 'R' };
+function makeState(rows) {
+  const gates = {}, W = rows[0].length;
+  const grid = rows.map((r, i) => [...r].map((ch, j) => { if (GATE_DIR[ch]) { gates[i * W + j] = GATE_DIR[ch]; return '.'; } return ch; }));
+  return { grid, gates, last: null, moves: 0, won: false };
+}
 
 // A full player turn: player step, then Echo of the PREVIOUS input (skipped if board cleared).
 // No-op player inputs are ignored entirely (no move, no change to stored direction).
 function play(state, d, opts) {
   const echoOn = !(opts && opts.echo === false); // analysis only: lets the solver measure Echo's contribution
   if (state.won) return { state, noop: true, events: [] };
-  const a = step(state.grid, d);
+  const a = step(state.grid, d, state.gates);
   if (!a.changed) return { state, noop: true, events: [] };
   const events = [{ type: 'player', dir: d, matches: a.matches, tiles: a.tiles }];
   let grid = a.grid;
   if (echoOn && tileCount(grid) > 0 && state.last) {
-    const e = step(grid, state.last);
+    const e = step(grid, state.last, state.gates);
     events.push({ type: 'echo', dir: state.last, matches: e.matches, moved: e.changed, tiles: e.tiles });
     grid = e.grid;
   }
-  return { state: { grid, last: d, moves: state.moves + 1, won: tileCount(grid) === 0 }, noop: false, events };
+  return { state: { grid, gates: state.gates, last: d, moves: state.moves + 1, won: tileCount(grid) === 0 }, noop: false, events };
 }
 
 // Exact BFS over (board, stored direction), using play() itself — no separate solver logic.
@@ -153,15 +167,29 @@ function solve(state, opts) {
   }
   return { solvable: false, solution: null, optimal: null, statesExplored: seen.size };
 }
+// Incremental dead-board search (identical transitions to solve): drive with .next(); returns true when NO win is reachable.
+// Lets the UI check for dead boards in small time slices without freezing the screen.
+function* deadSearch(state) {
+  if (state.won) return false;
+  const seen = new Set([gridKey(state.grid) + state.last]); let frontier = [state], n = 0;
+  while (frontier.length) { const next = [];
+    for (const s of frontier) for (const d of 'UDLR') {
+      const r = play(s, d); if (r.noop) continue; if (r.state.won) return false;
+      const k = gridKey(r.state.grid) + r.state.last; if (!seen.has(k)) { seen.add(k); next.push(r.state); }
+      if (++n % 300 === 0) yield;
+    }
+    frontier = next; }
+  return true;
+}
 const isDead = s => !s.won && !solve(s).solvable;
 const stars = (moves, optimal) => (moves <= optimal ? 3 : moves <= optimal + 2 ? 2 : 1);
 
-module.exports = { step, play, solve, isDead, stars, makeState, parse, gridKey, tileCount };
+module.exports = { step, play, solve, isDead, deadSearch, stars, makeState, parse, gridKey, tileCount };
 
 return module.exports})();
 const LEVELS=(()=>{const module={exports:{}};'use strict';
-// Campaign: levels 1-5 teach; 6-30 are solver-curated. Legend: '.' empty, '#' obstacle, letters = tile colours (2 each).
-// Every level is checked by test.js: solvable, recorded solution wins and is optimal.
+// Campaign: 1-5 teach; gates ( ^ v < > = one-way gate, enter only moving in the arrow direction) arrive at level 16.
+// Legend: '.' empty, '#' obstacle, letters = tile colours (2 each). Every level is checked by test.js: solvable, recorded solution wins and is optimal.
 module.exports = [
   { id: 1, rows: [".A.","...",".A."], solution: 'UU' },
   { id: 2, rows: [".#.A","....","A...","...."], solution: 'RUR' },
@@ -178,29 +206,30 @@ module.exports = [
   { id: 13, rows: ["...#.","B#..A","A#...","....B"], solution: 'DRRULL' },
   { id: 14, rows: [".CAB","....","B...",".##C",".A.."], solution: 'RRULUL' },
   { id: 15, rows: ["..#.A",".....","B..C.","#C#..","..A.B"], solution: 'URDRDD' },
-  { id: 16, rows: ["CB.A",".#..","#.C.","B...","..A."], solution: 'RDDDRD' },
-  { id: 17, rows: ["..B.","...A",".C.B",".A..","..#C"], solution: 'LLULDD' },
-  { id: 18, rows: ["A..#.",".B#..","A....",".C.BC","....#"], solution: 'DRDLLD' },
+  { id: 16, rows: ["....","A...","....",".>.A"], solution: 'RDR' },
+  { id: 17, rows: ["....",".A.#","...A","B.^B"], solution: 'ULLU' },
+  { id: 18, rows: ["A...","..B.","#<.A","..<.",".B.."], solution: 'DLRRDD' },
   { id: 19, rows: ["..B.C","..A#.","..#.A","....B","C...."], solution: 'LDLUULU' },
   { id: 20, rows: ["..A..","C...B",".#..#",".B..C","..A.."], solution: 'DDDLDLL' },
   { id: 21, rows: ["B.#CA",".....","A#.B.","....#","C...."], solution: 'DDRDLLL' },
-  { id: 22, rows: [".ACB","B...","....",".##.",".CA."], solution: 'LURRUUR' },
+  { id: 22, rows: ["BA..C","#..>B","#....","C....","..#A."], solution: 'ULURURR' },
   { id: 23, rows: ["B.#CA","...#.","A..B.",".#...","C...."], solution: 'RDRRDDR' },
   { id: 24, rows: ["BA..C","#...B","....#","C....","..#A."], solution: 'UURRURD' },
-  { id: 25, rows: ["BA..C","#...B","#....","C....","..#A."], solution: 'UURULLU' },
+  { id: 25, rows: [".CBC.","....#",".....","A.#A.","B>..<"], solution: 'UDLLDDR' },
   { id: 26, rows: [".A.#.","B#...","#.CA.","..B..","C...."], solution: 'UDRDDRD' },
   { id: 27, rows: [".A...","..#..","B..C.","#C#..",".A..B"], solution: 'RUDDDRR' },
-  { id: 28, rows: [".CBC.","....#",".....","A.#A.","B#..."], solution: 'UDLLDDR' },
+  { id: 28, rows: [".ACB","B.>.","...<",".##.",".CA."], solution: 'LUURRLUU' },
   { id: 29, rows: ["..AB.",".B.#.","..#A.",".#.#.","....."], solution: 'RULDLURR' },
-  { id: 30, rows: [".BCA",".AB.","....","...#","#..C"], solution: 'DDULULUU' }
+  { id: 30, rows: [".BCA",".AB.","....","...#","#.vC"], solution: 'DRLDRRUUR' }
 ];
 
 return module.exports})();
-const {play,isDead,stars,makeState}=ENG;
-const AR={U:'↑',D:'↓',L:'←',R:'→'},$=id=>document.getElementById(id);
+const {play,deadSearch,stars,makeState}=ENG;
+const GL={'^':'↑','v':'↓','<':'←','>':'→'},AR={U:'↑',D:'↓',L:'←',R:'→'},$=id=>document.getElementById(id);
 const HINTS=['Swipe. Every tile moves one step. Matching tiles that meet vanish.','After each move, your previous move repeats. Watch the ECHO arrow.','The first move has no echo. Plan the order of your moves.','Walls and obstacles stop tiles. Use them to line a pair up.','The echo can undo your move. Sometimes that is the point.'];
+HINTS[15]='Gate: a tile can only enter an arrow cell moving the way the arrow points. Otherwise it blocks like a wall.';HINTS[16]='Gates block the echo too. Check where each move and its echo will go.';HINTS[17]='Two gates. Check every echo against them.';
 let li=0,st,T=[],busy=false,pend=null,gen=0,cell=60,onPath=true;
-const COACH={0:['Swipe {n}. Every tile moves one step.','Swipe {n} again. A tile pushing into its blocked match makes both vanish.'],1:['Swipe {n}. Your first move has no echo.','Swipe {n}. Watch the ECHO: after your move, your previous move repeats by itself.','Swipe {n}. The echo finishes the match for you.']};
+const COACH={15:['Swipe {n}. The arrow cell is a one-way gate: tiles can only enter it moving in the arrow direction.','Swipe {n}. Gates block the echo too.','Swipe {n} to finish.'],0:['Swipe {n}. Every tile moves one step.','Swipe {n} again. A tile pushing into its blocked match makes both vanish.'],1:['Swipe {n}. Your first move has no echo.','Swipe {n}. Watch the ECHO: after your move, your previous move repeats by itself.','Swipe {n}. The echo finishes the match for you.']};
 function coach(){const lv=LEVELS[li],c=COACH[li]&&COACH[li][st.moves];const h=$('hint');
  if(c&&onPath&&!st.won){h.textContent=c.replace('{n}',AR[lv.solution[st.moves]]);h.className='coach'}else{h.textContent=HINTS[li]||'';h.className=''}}
 const SAVE='omm_v1';let save={stars:{},best:{}};
@@ -214,15 +243,15 @@ function layout(){const g=LEVELS[li].rows,R=g.length,C=g[0].length;
  cell=Math.floor(Math.min((innerWidth-32)/C,(innerHeight*.5)/R,110));
  const b=$('board');b.style.width=cell*C+'px';b.style.height=cell*R+'px';b.style.setProperty('--c',cell+'px');
  $('ghost')&&($('ghost').style.fontSize=cell*1.6+'px');
- b.querySelectorAll('.cell,.wall').forEach(e=>e.style.transform=`translate(${e.dataset.c*cell}px,${e.dataset.r*cell}px)`);T.forEach(t=>!t.dead&&place(t))}
+ b.querySelectorAll('.cell,.wall,.gate').forEach(e=>e.style.transform=`translate(${e.dataset.c*cell}px,${e.dataset.r*cell}px)`);T.forEach(t=>!t.dead&&place(t))}
 function hud(){$('lv').textContent=LEVELS[li].id;$('mv').textContent=st.moves;$('par').textContent=LEVELS[li].solution.length;
  $('ea').textContent=st.last?AR[st.last]:'·';coach();$('prev').disabled=li===0;$('next').disabled=li>=LEVELS.length-1||!unlocked(li+1)}
-function load(i){if(st){if(i===li)track('restarts');else if(!st.won&&st.moves>0)track('abandon')}gen++;busy=false;pend=null;li=i;st=makeState(LEVELS[i].rows);T=[];track('starts');t0=Date.now();
+function load(i){dtok++;if(st){if(i===li)track('restarts');else if(!st.won&&st.moves>0)track('abandon')}gen++;busy=false;pend=null;li=i;st=makeState(LEVELS[i].rows);T=[];track('starts');t0=Date.now();
  const b=$('board');b.innerHTML='<div id="ghost"></div>';$('ov').classList.remove('on');onPath=true;
  LEVELS[i].rows.forEach((row,r)=>[...row].forEach((ch,c)=>{
   const mk=(cls)=>{const e=document.createElement('div');e.className=cls;e.dataset.r=r;e.dataset.c=c;b.appendChild(e);return e};
-  mk(ch==='#'?'wall':'cell');
-  if(ch!=='.'&&ch!=='#'){const el=document.createElement('div');el.className='t '+ch;el.innerHTML='<i></i>';b.appendChild(el);T.push({el,r,c})}}));
+  const gc=GL[ch];const ge=mk(ch==='#'?'wall':gc?'gate':'cell');if(gc)ge.dataset.a=gc;
+  if(/[A-Z]/.test(ch)){const el=document.createElement('div');el.className='t '+ch;el.innerHTML='<i></i>';b.appendChild(el);T.push({el,r,c})}}));
  layout();hud()}
 async function run(d){
  if(busy){pend=d;return}
@@ -242,8 +271,13 @@ async function run(d){
   if(echo){delete bd.dataset.e;$('echo').classList.remove('fire')}}
  busy=false;hud();
  if(st.won){await sleep(260);if(my===gen)win()}
- else if(isDead(st)){$('hint').textContent='No solution from here. Restart.';$('hint').className='coach';SFX.dead();track('dead')}
- else if(pend){const p=pend;pend=null;run(p)}}
+ else if(pend){const p=pend;pend=null;run(p)}
+ else check()}
+let dtok=0;
+function check(){const my=++dtok,snap=st,g=deadSearch(st);
+ const tick=()=>{if(my!==dtok||snap!==st)return;const t=performance.now();let r;do{r=g.next()}while(!r.done&&performance.now()-t<6);
+  if(!r.done)setTimeout(tick,0);else if(r.value){$('hint').textContent='No solution from here. Restart.';$('hint').className='coach';SFX.dead();track('dead')}};
+ setTimeout(tick,60)}
 function win(){const lv=LEVELS[li],opt=lv.solution.length,s=stars(st.moves,opt);SFX.win();track('wins');track('moves',st.moves);track('ms',Date.now()-t0);
  const prev=save.stars[lv.id]||0;if(s>prev)save.stars[lv.id]=s;
  if(!save.best[lv.id]||st.moves<save.best[lv.id])save.best[lv.id]=st.moves;persist();

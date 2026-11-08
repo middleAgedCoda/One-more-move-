@@ -14,7 +14,7 @@ header b{color:var(--fg)}
 #echo span{font-size:26px;line-height:1;color:var(--fg);min-width:26px;text-align:center}
 #stage{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px}
 #board{position:relative;background:var(--panel);border-radius:14px;padding:0}
-.cell,.wall,.gate,.t{position:absolute;left:0;top:0;width:var(--c);height:var(--c)}
+.cell,.wall,.gate,.pit,.pulse,.t{position:absolute;left:0;top:0;width:var(--c);height:var(--c)}
 .cell::after,.wall::after,.gate::after{content:"";position:absolute;inset:3px;border-radius:9px;background:var(--cell)}
 .gate::after{box-shadow:inset 0 0 0 2px var(--b)}.gate::before{content:attr(data-a);position:absolute;inset:0;display:grid;place-items:center;font-size:calc(var(--c)*.5);color:var(--b);z-index:1}
 .wall::after{background:var(--wall)}
@@ -51,10 +51,14 @@ details{width:100%;max-width:420px;background:var(--panel);border-radius:12px;pa
 button:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){.t{transition:none!important}.t.pop{animation-duration:.01s}}
 .ic{padding:11px 15px;min-width:44px;min-height:44px;font-size:18px;margin-right:10px}
+.pit::after,.pulse::after{content:"";position:absolute;inset:3px;border-radius:9px;background:var(--cell)}
+.pit::after{border-radius:50%;background:#000;box-shadow:inset 0 0 0 3px var(--dim)}.pulse::after{background:var(--wall);transition:background .15s,box-shadow .15s}.pulse.open::after{background:transparent;box-shadow:inset 0 0 0 2px var(--wall)}
+#echo small{font-size:10px;letter-spacing:.14em;color:var(--b)}#echo small:empty{display:none}
+.ch{grid-column:1/-1;display:flex;justify-content:space-between;margin-top:10px;letter-spacing:.14em;font-size:12px;color:var(--dim)}.ch b{color:var(--fg)}.ch.lock b{opacity:.6}
 </style></head><body>
 <div id="app">
-<header><span><button class="ic" id="pz" aria-label="Menu">☰</button>LEVEL <b id="lv">1</b></span><span>MOVES <b id="mv">0</b> · PAR <b id="par">0</b></span></header>
-<div id="stage"><div id="echo">ECHO<span id="ea">·</span></div><div id="board" aria-label="Puzzle board"></div><div id="hint" aria-live="polite"></div></div>
+<header><span><button class="ic" id="pz" aria-label="Menu">☰</button>LEVEL <b id="lv">1</b></span><span>MOVES <b id="mv">0</b>/<b id="lim">0</b> · PAR <b id="par">0</b></span></header>
+<div id="stage"><div id="echo">ECHO<span id="ea">·</span><small id="em"></small></div><div id="board" aria-label="Puzzle board"></div><div id="hint" aria-live="polite"></div></div>
 <footer><button id="prev" aria-label="Previous level">‹</button><button id="rs">↺ RESTART</button><button id="next" aria-label="Next level">›</button></footer>
 </div>
 <div id="ov"><div id="ovc"></div></div>
@@ -67,40 +71,46 @@ button:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
 <details><summary>MATCHING</summary><p>A match happens when a tile is pushed into a stopped tile of the same shape and colour. Both vanish. Tiles travelling side by side never match, so one of them must be stopped by a wall, an obstacle or another tile. Different tiles never vanish; they only block each other.</p></details>
 <details><summary>ONE-WAY GATES (LEVEL 16+)</summary><p>A cell with an arrow is a one-way gate. A tile can only enter it by moving in the arrow direction. From any other side it blocks like a wall, and the echo obeys the same rule. A tile standing on a gate can leave in any direction. Gates never move, and two tiles do not match through a closed gate side.</p></details>
 <details><summary>THE ECHO</summary><p>After every move, your previous move repeats by itself. The first move of a level has no echo. The ECHO arrow at the top shows which direction will repeat after your next move. It is always exact, never random. The echo is free: only your own swipes count as moves. If your move clears the board, no echo follows.</p></details>
-<details><summary>STARS ★</summary><p>Every level has a PAR: the fewest moves it can be solved in, found by checking every possibility. ★★★ finish in par moves or fewer. ★★ finish within 2 moves of par. ★ finish at all. Your best score is saved, and a level unlocks when you earn at least one star on the one before it. Every level can be completed for free.</p></details>
+<details><summary>MOVE LIMIT</summary><p>Every level has a move limit, shown as MOVES 3/7. Only your own swipes count, never echoes. Run out and the attempt ends. The game also warns you the moment finishing in time is no longer possible, so you can restart at once.</p></details>
+<details><summary>STARS ★</summary><p>Every level has a PAR: the fewest moves it can be done in, found by checking every possibility. ★★★ finish in par moves or fewer. ★★ finish within 1 move of par. ★ finish within the move limit. Your best score is saved. Every level can be 3-starred, and nothing is for sale.</p></details>
+<details><summary>ECHO VARIANTS (LEVEL 31+)</summary><p>REVERSE: after your move, the OPPOSITE of your previous move plays. DELAY: the move from TWO inputs ago plays, so moves 1 and 2 have no echo. DOUBLE: your previous move plays, then the one before it. The ECHO box always shows exactly what will play after your next move.</p></details>
+<details><summary>PITS (LEVEL 39+)</summary><p>A black hole is a pit. A tile that lands in one is lost, and so is the attempt. The echo can push a tile into a pit too, so check it before you swipe.</p></details>
+<details><summary>PULSE WALLS (LEVEL 51+)</summary><p>Solid pulse blocks are shut and outlined ones are open. They swap after every move of yours. A tile already inside a block that shuts is not pushed out; it just blocks others from entering.</p></details>
+<details><summary>CHAPTERS &amp; STAR LOCKS</summary><p>The campaign has five chapters: ECHO, GATES, REVERSE, PITS and TWISTS. A chapter opens once you hold enough stars from the levels before it, so replaying levels for better stars is part of the challenge. The level screen shows how many more you need.</p></details>
 <details><summary>STUCK?</summary><p>If no solution remains, the game tells you. Restart is one tap and instant, and the Echo resets with it. Mistakes are part of the puzzle: plan one move ahead, and remember what the echo will do.</p></details>
 <details><summary>SHAPES</summary><p>● circle, ■ square, ▲ triangle. Each colour also has its own shape, so you never need to tell colours apart.</p></details>
 <button id="hback">BACK</button></div>
 <script>
 const ENG=(()=>{const module={exports:{}};'use strict';
-// ONE MORE MOVE — core engine + exact BFS solver. UI-independent, pure functions.
-// Cells: '.' empty, '#' obstacle, any other char = tile colour (exactly 2 per colour).
+// ONE MORE MOVE: core engine + exact solver. UI-independent, pure functions. All rules live here.
+// Cells: '.' empty, '#' obstacle, A-Z tile colours (exactly 2 each).
+// Terrain (static, kept in state, never moves): ^ v < > one-way gate | o pit | z / y pulse wall (starts closed / open).
 const DIRS = { U: [-1, 0], D: [1, 0], L: [0, -1], R: [0, 1] };
+const OPP = { U: 'D', D: 'U', L: 'R', R: 'L' };
 const isTile = ch => ch !== '.' && ch !== '#';
 const parse = rows => rows.map(r => r.split(''));
-const clone = g => g.map(r => r.slice());
 const gridKey = g => g.map(r => r.join('')).join('/');
 const tileCount = g => g.reduce((n, r) => n + r.filter(isTile).length, 0);
 
-// One resolution step (the single source of truth for movement).
-// 1) Every tile is a mover. 2) Iteratively block movers whose target is out of bounds,
-// an obstacle, or a non-moving tile. Repeat to fixpoint (chains move together; vacated cells OK).
-// 3) From that snapshot, a blocked tile whose target holds a blocked same-colour tile matches;
-//    all matches are decided simultaneously. 4) Movers shift one cell; matched tiles vanish.
-//    Vacated cells trigger NO further movement in this step.
-// ONE-WAY GATES: terrain, not tiles. A gate cell can only be ENTERED by a tile moving in its arrow direction;
-// from any other direction it blocks like a wall (and a blocked contact is not a collision, so no match).
-// A tile standing on a gate may leave in any direction. Gates never move and live in state.gates.
-function step(g, d, gates) {
+// One resolution step (single source of truth for movement).
+// 1) Every tile is a mover. 2) Iteratively block movers whose target is out of bounds, an obstacle, a gate entered from the
+// wrong side, a closed pulse wall, or a non-moving tile; repeat to fixpoint (chains move together; vacated cells are usable).
+// 3) From that snapshot, a blocked tile whose target holds a blocked same-colour tile matches (a closed gate side or closed
+// pulse wall is not a collision). All matches are decided simultaneously. 4) Movers shift one cell; matched tiles vanish;
+// a mover that lands in a pit is LOST. Vacated cells trigger no further movement within the step.
+// x = { pits, pulse, phase }: optional terrain; phase = number of player moves already made (pulse walls flip every turn).
+function step(g, d, gates, x) {
   const [dr, dc] = DIRS[d], H = g.length, W = g[0].length;
+  const pits = x && x.pits, pulse = x && x.pulse, phase = x ? (x.phase | 0) : 0;
+  const closed = k => !!(pulse && pulse[k] && ((pulse[k] === 'z') === (phase % 2 === 0)));
+  const shut = k => !!(gates && gates[k] && gates[k] !== d) || closed(k);
   const mv = new Set();
   for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) if (isTile(g[r][c])) mv.add(r * W + c);
   for (let changed = true; changed;) {
     changed = false;
     for (const k of [...mv]) {
       const nr = ((k / W) | 0) + dr, nc = (k % W) + dc;
-      const blocked = nr < 0 || nr >= H || nc < 0 || nc >= W || g[nr][nc] === '#' ||
-        (gates && gates[nr * W + nc] && gates[nr * W + nc] !== d) ||
+      const blocked = nr < 0 || nr >= H || nc < 0 || nc >= W || g[nr][nc] === '#' || shut(nr * W + nc) ||
         (isTile(g[nr][nc]) && !mv.has(nr * W + nc));
       if (blocked) { mv.delete(k); changed = true; }
     }
@@ -110,132 +120,199 @@ function step(g, d, gates) {
     if (!isTile(g[r][c]) || mv.has(r * W + c)) continue;
     const nr = r + dr, nc = c + dc;
     if (nr < 0 || nr >= H || nc < 0 || nc >= W) continue;
-    if (g[nr][nc] === g[r][c] && !mv.has(nr * W + nc) && !(gates && gates[nr * W + nc] && gates[nr * W + nc] !== d)) { matched.add(r * W + c); matched.add(nr * W + nc); }
+    if (g[nr][nc] === g[r][c] && !mv.has(nr * W + nc) && !shut(nr * W + nc)) { matched.add(r * W + c); matched.add(nr * W + nc); }
   }
   const out = g.map(r => r.map(ch => (isTile(ch) ? '.' : ch)));
-  const tiles = []; // presentation trace only (does not affect rules): where each tile came from / went
+  const tiles = []; let lost = 0; // presentation trace (does not affect rules)
   for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
     const k = r * W + c;
     if (!isTile(g[r][c])) continue;
     if (matched.has(k)) { tiles.push({ from: [r, c], to: [r, c], ch: g[r][c], matched: true }); continue; }
     const m = mv.has(k), to = m ? [r + dr, c + dc] : [r, c];
+    if (m && pits && pits[to[0] * W + to[1]]) { lost++; tiles.push({ from: [r, c], to, ch: g[r][c], matched: false, lost: true }); continue; }
     out[to[0]][to[1]] = g[r][c]; tiles.push({ from: [r, c], to, ch: g[r][c], matched: false });
   }
-  return { grid: out, changed: mv.size > 0 || matched.size > 0, matches: matched.size / 2, tiles };
+  return { grid: out, changed: mv.size > 0 || matched.size > 0, matches: matched.size / 2, lost, tiles };
 }
 
 const GATE_DIR = { '^': 'U', 'v': 'D', '<': 'L', '>': 'R' };
-function makeState(rows) {
-  const gates = {}, W = rows[0].length;
-  const grid = rows.map((r, i) => [...r].map((ch, j) => { if (GATE_DIR[ch]) { gates[i * W + j] = GATE_DIR[ch]; return '.'; } return ch; }));
-  return { grid, gates, last: null, moves: 0, won: false };
+// opts.echo: 'normal' (default) | 'reverse' | 'delay' | 'double'
+function makeState(rows, opts) {
+  const gates = {}, pits = {}, pulse = {}, W = rows[0].length;
+  const grid = rows.map((r, i) => [...r].map((ch, j) => {
+    const k = i * W + j;
+    if (GATE_DIR[ch]) { gates[k] = GATE_DIR[ch]; return '.'; }
+    if (ch === 'o') { pits[k] = true; return '.'; }
+    if (ch === 'z' || ch === 'y') { pulse[k] = ch; return '.'; }
+    return ch;
+  }));
+  return { grid, gates, pits, pulse, mode: (opts && opts.echo) || 'normal', hist: [], last: null, moves: 0, won: false, lost: false };
+}
+const stepState = (s, d) => step(s.grid, d, s.gates, { pits: s.pits, pulse: s.pulse, phase: s.moves });
+
+// Which directions the Echo will play after the NEXT player move. hist[0] = previous input, hist[1] = the one before.
+//  normal : repeat the previous input        reverse: the OPPOSITE of the previous input
+//  delay  : the input from two moves ago      double : previous input, then the one before it
+function echoPlan(mode, hist) {
+  const a = hist[0], b = hist[1];
+  if (mode === 'reverse') return a ? [OPP[a]] : [];
+  if (mode === 'delay') return b ? [b] : [];
+  if (mode === 'double') return [a, b].filter(Boolean);
+  return a ? [a] : [];
 }
 
-// A full player turn: player step, then Echo of the PREVIOUS input (skipped if board cleared).
-// No-op player inputs are ignored entirely (no move, no change to stored direction).
+// A full player turn: player step, then the Echo steps (skipped once the board is cleared or a tile is lost).
+// No-op inputs are ignored entirely (no move consumed, history unchanged). A lost tile ends the attempt (state.lost).
 function play(state, d, opts) {
-  const echoOn = !(opts && opts.echo === false); // analysis only: lets the solver measure Echo's contribution
-  if (state.won) return { state, noop: true, events: [] };
-  const a = step(state.grid, d, state.gates);
+  if (state.won || state.lost) return { state, noop: true, events: [] };
+  const x = { pits: state.pits, pulse: state.pulse, phase: state.moves };
+  const a = step(state.grid, d, state.gates, x);
   if (!a.changed) return { state, noop: true, events: [] };
-  const events = [{ type: 'player', dir: d, matches: a.matches, tiles: a.tiles }];
-  let grid = a.grid;
-  if (echoOn && tileCount(grid) > 0 && state.last) {
-    const e = step(grid, state.last, state.gates);
-    events.push({ type: 'echo', dir: state.last, matches: e.matches, moved: e.changed, tiles: e.tiles });
-    grid = e.grid;
+  const events = [{ type: 'player', dir: d, matches: a.matches, tiles: a.tiles, lost: a.lost }];
+  let grid = a.grid, lost = a.lost > 0;
+  if (!(opts && opts.echo === false)) for (const e of echoPlan(state.mode, state.hist)) {
+    if (lost || tileCount(grid) === 0) break;
+    const r = step(grid, e, state.gates, x);
+    events.push({ type: 'echo', dir: e, matches: r.matches, moved: r.changed, tiles: r.tiles, lost: r.lost });
+    grid = r.grid; if (r.lost) lost = true;
   }
-  return { state: { grid, gates: state.gates, last: d, moves: state.moves + 1, won: tileCount(grid) === 0 }, noop: false, events };
+  const hist = [d, ...state.hist].slice(0, 2);
+  return { state: { grid, gates: state.gates, pits: state.pits, pulse: state.pulse, mode: state.mode, hist, last: d,
+    moves: state.moves + 1, won: !lost && tileCount(grid) === 0, lost }, noop: false, events };
 }
 
-// Exact BFS over (board, stored direction), using play() itself — no separate solver logic.
+// Key of everything that can affect the future (history only where the mode reads it; pulse parity only with pulse walls).
+function stateKey(s) {
+  const h = (s.mode === 'delay' || s.mode === 'double') ? s.hist.join('') : (s.hist[0] || '');
+  return gridKey(s.grid) + '|' + h + (s.pulse && Object.keys(s.pulse).length ? '|' + (s.moves % 2) : '');
+}
+
+// Exact BFS using play() itself, so the solver can never disagree with the game. Lost-tile branches are pruned.
 function solve(state, opts) {
   if (state.won) return { solvable: true, solution: [], optimal: 0 };
-  const seen = new Set([gridKey(state.grid) + state.last]);
+  const seen = new Set([stateKey(state)]);
   let frontier = [{ s: state, path: [] }];
   while (frontier.length) {
     const next = [];
     for (const { s, path } of frontier) for (const d of 'UDLR') {
       const r = play(s, d, opts);
-      if (r.noop) continue;
+      if (r.noop || r.state.lost) continue;
       const p = path.concat(d);
       if (r.state.won) return { solvable: true, solution: p, optimal: p.length };
-      const k = gridKey(r.state.grid) + r.state.last;
+      const k = stateKey(r.state);
       if (!seen.has(k)) { seen.add(k); next.push({ s: r.state, path: p }); }
     }
     frontier = next;
   }
   return { solvable: false, solution: null, optimal: null, statesExplored: seen.size };
 }
-// Incremental dead-board search (identical transitions to solve): drive with .next(); returns true when NO win is reachable.
-// Lets the UI check for dead boards in small time slices without freezing the screen.
-function* deadSearch(state) {
-  if (state.won) return false;
-  const seen = new Set([gridKey(state.grid) + state.last]); let frontier = [state], n = 0;
-  while (frontier.length) { const next = [];
+
+// Incremental searches for the UI (drive with .next(); they yield now and then so the screen never freezes).
+// canFinish(state, maxMoves): true if the board can still be cleared within maxMoves more player moves.
+function* canFinish(state, maxMoves) {
+  if (state.won) return true;
+  if (state.lost || maxMoves <= 0) return false;
+  const seen = new Set([stateKey(state)]); let frontier = [state], n = 0;
+  for (let depth = 0; depth < maxMoves && frontier.length; depth++) {
+    const next = [];
     for (const s of frontier) for (const d of 'UDLR') {
-      const r = play(s, d); if (r.noop) continue; if (r.state.won) return false;
-      const k = gridKey(r.state.grid) + r.state.last; if (!seen.has(k)) { seen.add(k); next.push(r.state); }
+      const r = play(s, d); if (r.noop || r.state.lost) continue; if (r.state.won) return true;
+      const k = stateKey(r.state); if (!seen.has(k)) { seen.add(k); next.push(r.state); }
       if (++n % 300 === 0) yield;
     }
-    frontier = next; }
-  return true;
+    frontier = next;
+  }
+  return false;
 }
+const deadSearch = function* (state) { const g = canFinish(state, 1e9); let r; do { r = g.next(); if (!r.done) yield; } while (!r.done); return !r.value; };
 const isDead = s => !s.won && !solve(s).solvable;
-const stars = (moves, optimal) => (moves <= optimal ? 3 : moves <= optimal + 2 ? 2 : 1);
+const stars = (moves, par) => (moves <= par ? 3 : moves <= par + 1 ? 2 : 1);
 
-module.exports = { step, play, solve, isDead, deadSearch, stars, makeState, parse, gridKey, tileCount };
+module.exports = { step, stepState, play, solve, canFinish, deadSearch, isDead, stars, makeState, echoPlan, parse, gridKey, stateKey, tileCount };
 
 return module.exports})();
 const LEVELS=(()=>{const module={exports:{}};'use strict';
-// Campaign: 1-5 teach; gates ( ^ v < > = one-way gate, enter only moving in the arrow direction) arrive at level 16.
-// Legend: '.' empty, '#' obstacle, letters = tile colours (2 each). Every level is checked by test.js: solvable, recorded solution wins and is optimal.
-module.exports = [
-  { id: 1, rows: [".A.","...",".A."], solution: 'UU' },
-  { id: 2, rows: [".#.A","....","A...","...."], solution: 'RUR' },
-  { id: 3, rows: ["A#..","....","#...","A..."], solution: 'DRD' },
-  { id: 4, rows: ["AB..","....","B.##","A..."], solution: 'RUUR' },
-  { id: 5, rows: ["B#...","..#.A","A..#.","...B."], solution: 'DDULLD' },
-  { id: 6, rows: ["B...","#.A.","A...","B..."], solution: 'RDRD' },
-  { id: 7, rows: ["....","#.BA","..AB","...."], solution: 'LURR' },
-  { id: 8, rows: ["AB..",".#..",".B.A","...."], solution: 'URUR' },
-  { id: 9, rows: [".A.#",".B..",".A..","#B.."], solution: 'LRRUU' },
-  { id: 10, rows: ["B..#","..#A",".AB.","...."], solution: 'DRRUU' },
-  { id: 11, rows: ["AB...","...#A","...##","...B.",".#..."], solution: 'LUULL' },
-  { id: 12, rows: ["....B",".....",".AC.A","..C#.",".B.#."], solution: 'LDLDD' },
-  { id: 13, rows: ["...#.","B#..A","A#...","....B"], solution: 'DRRULL' },
-  { id: 14, rows: [".CAB","....","B...",".##C",".A.."], solution: 'RRULUL' },
-  { id: 15, rows: ["..#.A",".....","B..C.","#C#..","..A.B"], solution: 'URDRDD' },
-  { id: 16, rows: ["....","A...","....",".>.A"], solution: 'RDR' },
-  { id: 17, rows: ["....",".A.#","...A","B.^B"], solution: 'ULLU' },
-  { id: 18, rows: ["A...","..B.","#<.A","..<.",".B.."], solution: 'DLRRDD' },
-  { id: 19, rows: ["..B.C","..A#.","..#.A","....B","C...."], solution: 'LDLUULU' },
-  { id: 20, rows: ["..A..","C...B",".#..#",".B..C","..A.."], solution: 'DDDLDLL' },
-  { id: 21, rows: ["B.#CA",".....","A#.B.","....#","C...."], solution: 'DDRDLLL' },
-  { id: 22, rows: ["BA..C","#..>B","#....","C....","..#A."], solution: 'ULURURR' },
-  { id: 23, rows: ["B.#CA","...#.","A..B.",".#...","C...."], solution: 'RDRRDDR' },
-  { id: 24, rows: ["BA..C","#...B","....#","C....","..#A."], solution: 'UURRURD' },
-  { id: 25, rows: [".CBC.","....#",".....","A.#A.","B>..<"], solution: 'UDLLDDR' },
-  { id: 26, rows: [".A.#.","B#...","#.CA.","..B..","C...."], solution: 'UDRDDRD' },
-  { id: 27, rows: [".A...","..#..","B..C.","#C#..",".A..B"], solution: 'RUDDDRR' },
-  { id: 28, rows: [".ACB","B.>.","...<",".##.",".CA."], solution: 'LUURRLUU' },
-  { id: 29, rows: ["..AB.",".B.#.","..#A.",".#.#.","....."], solution: 'RULDLURR' },
-  { id: 30, rows: [".BCA",".AB.","....","...#","#.vC"], solution: 'DRLDRRUUR' }
+// Campaign data. Legend: '.' empty, '#' obstacle, letters = tile colours (2 each). Terrain: ^ v < > one-way gate, o pit, z/y pulse wall (z starts shut, y starts open).
+// echo: 'normal' (default) | 'reverse' | 'delay' | 'double'. limit = most player moves allowed. par = solution.length (proved optimal by test.js).
+const LEVELS = [
+  { id: 1, rows: [".A.","...",".A."], solution: 'UU', limit: 8 },
+  { id: 2, rows: [".#.A","....","A...","...."], solution: 'RUR', limit: 9 },
+  { id: 3, rows: ["A#..","....","#...","A..."], solution: 'DRD', limit: 9 },
+  { id: 4, rows: ["AB..","....","B.##","A..."], solution: 'RUUR', limit: 8 },
+  { id: 5, rows: ["B#...","..#.A","A..#.","...B."], solution: 'DDULLD', limit: 10 },
+  { id: 6, rows: ["B...","#.A.","A...","B..."], solution: 'RDRD', limit: 8 },
+  { id: 7, rows: ["....","#.BA","..AB","...."], solution: 'LURR', limit: 8 },
+  { id: 8, rows: ["AB..",".#..",".B.A","...."], solution: 'URUR', limit: 8 },
+  { id: 9, rows: [".A.#",".B..",".A..","#B.."], solution: 'LRRUU', limit: 9 },
+  { id: 10, rows: ["B..#","..#A",".AB.","...."], solution: 'DRRUU', limit: 9 },
+  { id: 11, rows: ["AB...","...#A","...##","...B.",".#..."], solution: 'LUULL', limit: 9 },
+  { id: 12, rows: ["....B",".....",".AC.A","..C#.",".B.#."], solution: 'LDLDD', limit: 9 },
+  { id: 13, rows: ["...#.","B#..A","A#...","....B"], solution: 'DRRULL', limit: 10 },
+  { id: 14, rows: [".CAB","....","B...",".##C",".A.."], solution: 'RRULUL', limit: 10 },
+  { id: 15, rows: ["..#.A",".....","B..C.","#C#..","..A.B"], solution: 'URDRDD', limit: 10 },
+  { id: 16, rows: ["....","A...","....",".>.A"], solution: 'RDR', limit: 7 },
+  { id: 17, rows: ["....",".A.#","...A","B.^B"], solution: 'ULLU', limit: 7 },
+  { id: 18, rows: ["A...","..B.","#<.A","..<.",".B.."], solution: 'DLRRDD', limit: 9 },
+  { id: 19, rows: ["..B.C","..A#.","..#.A","....B","C...."], solution: 'LDLUULU', limit: 10 },
+  { id: 20, rows: ["..A..","C...B",".#..#",".B..C","..A.."], solution: 'DDDLDLL', limit: 10 },
+  { id: 21, rows: ["B.#CA",".....","A#.B.","....#","C...."], solution: 'DDRDLLL', limit: 10 },
+  { id: 22, rows: ["BA..C","#..>B","#....","C....","..#A."], solution: 'ULURURR', limit: 10 },
+  { id: 23, rows: ["B.#CA","...#.","A..B.",".#...","C...."], solution: 'RDRRDDR', limit: 10 },
+  { id: 24, rows: ["BA..C","#...B","....#","C....","..#A."], solution: 'UURRURD', limit: 10 },
+  { id: 25, rows: [".CBC.","....#",".....","A.#A.","B>..<"], solution: 'UDLLDDR', limit: 10 },
+  { id: 26, rows: [".A.#.","B#...","#.CA.","..B..","C...."], solution: 'UDRDDRD', limit: 9 },
+  { id: 27, rows: [".A...","..#..","B..C.","#C#..",".A..B"], solution: 'RUDDDRR', limit: 9 },
+  { id: 28, rows: [".ACB","B.>.","...<",".##.",".CA."], solution: 'LUURRLUU', limit: 10 },
+  { id: 29, rows: ["..AB.",".B.#.","..#A.",".#.#.","....."], solution: 'RULDLURR', limit: 10 },
+  { id: 30, rows: [".BCA",".AB.","....","...#","#.vC"], solution: 'DRLDRRUUR', limit: 11 },
+  { id: 31, rows: ["....","....",".A..","...A"], solution: 'DRR', limit: 7, echo: 'reverse', hint: "REVERSE ECHO: after each move, the OPPOSITE of your previous move plays. The first move has no echo." },
+  { id: 32, rows: ["....","....","...A","A.#."], solution: 'RLD', limit: 7, echo: 'reverse', hint: "The ECHO arrow shows what will play after your next move." },
+  { id: 33, rows: [".B..",".#..",".BA.","A..."], solution: 'LDRUL', limit: 9, echo: 'reverse' },
+  { id: 34, rows: ["AB..",".#.A","B...","...#"], solution: 'URLRDU', limit: 9, echo: 'reverse' },
+  { id: 35, rows: ["A..A","B#..","<..B","....",".#.."], solution: 'RRLUL', limit: 8, echo: 'reverse' },
+  { id: 36, rows: ["#...B",".....","A.B.C","C#...",".A..."], solution: 'LUDUURL', limit: 10, echo: 'reverse' },
+  { id: 37, rows: ["C#...",".A.B.","..>C.",".....","A.#.B"], solution: 'LUUDLRR', limit: 10, echo: 'reverse' },
+  { id: 38, rows: ["B.C..","..^BA","###.C",".....","..A.."], solution: 'RDRUULDD', limit: 11, echo: 'reverse' },
+  { id: 39, rows: ["....","A...","....","..oA"], solution: 'RDR', limit: 7, hint: "PIT: a tile that falls in is lost, and the attempt is over. The echo can push a tile in too." },
+  { id: 40, rows: ["o..o","A...","...A",".#.."], solution: 'RDR', limit: 7 },
+  { id: 41, rows: ["..B.",".oA.","...B","A#.."], solution: 'UURR', limit: 8 },
+  { id: 42, rows: ["A.#B","..o.","o.A.",".B.."], solution: 'LRDDRR', limit: 9 },
+  { id: 43, rows: ["...B",".o..",".A.o","B...","..A#"], solution: 'RDLDL', limit: 8 },
+  { id: 44, rows: ["...B.",".A...","#ooB.","A....","CC..."], solution: 'UDRRDD', limit: 9 },
+  { id: 45, rows: ["C....",".BA#C","A...o",".B...",".>..o"], solution: 'UUDLLU', limit: 9 },
+  { id: 46, rows: ["o..o.","A##B^",".C...","..BCA",".o..."], solution: 'DRULRRDD', limit: 10 },
+  { id: 47, rows: [".A#.","...A","....","...."], solution: 'LLU', limit: 7, echo: 'delay', hint: "DELAY ECHO: the echo is the move from TWO inputs ago. Moves 1 and 2 have no echo." },
+  { id: 48, rows: [".B#A","..B.",".A..","...."], solution: 'DLLD', limit: 8, echo: 'delay' },
+  { id: 49, rows: [".B..","A.A.","....","...B"], solution: 'LDD', limit: 7, echo: 'double', hint: "DOUBLE ECHO: two echoes follow each move: your previous move, then the one before it." },
+  { id: 50, rows: ["..B.","...A","....","#.AB"], solution: 'LLUU', limit: 7, echo: 'double' },
+  { id: 51, rows: ["....","...A","..y.","A..y"], solution: 'RDR', limit: 6, hint: "PULSE WALLS: filled blocks are shut, outlined ones are open. They swap after every move." },
+  { id: 52, rows: [".A..",".z..",".yB.","#BA."], solution: 'UDLD', limit: 7 },
+  { id: 53, rows: ["A.B.","....","B.A.",".z#.","yy.."], solution: 'DDLDD', limit: 8 },
+  { id: 54, rows: ["...B.","C.<z.","B..o.","z..A.","..A#C"], solution: 'LULUDLD', limit: 9, echo: 'delay', hint: "Everything at once. Plan every move and every echo." }
 ];
+// Star locks: a chapter opens once you hold at least 'need' stars from the levels before it (and the previous level is cleared).
+LEVELS.chapters = [
+  { name: 'ECHO', from: 1, to: 15, need: 0 }, { name: 'GATES', from: 16, to: 30, need: 0 }, { name: 'REVERSE', from: 31, to: 38, need: 50 },
+  { name: 'PITS', from: 39, to: 46, need: 70 }, { name: 'TWISTS', from: 47, to: 54, need: 90 }
+];
+module.exports = LEVELS;
 
 return module.exports})();
-const {play,deadSearch,stars,makeState}=ENG;
+const {play,canFinish,stars,makeState,echoPlan}=ENG;
 const GL={'^':'↑','v':'↓','<':'←','>':'→'},AR={U:'↑',D:'↓',L:'←',R:'→'},$=id=>document.getElementById(id);
 const HINTS=['Swipe. Every tile moves one step. Matching tiles that meet vanish.','After each move, your previous move repeats. Watch the ECHO arrow.','The first move has no echo. Plan the order of your moves.','Walls and obstacles stop tiles. Use them to line a pair up.','The echo can undo your move. Sometimes that is the point.'];
 HINTS[15]='Gate: a tile can only enter an arrow cell moving the way the arrow points. Otherwise it blocks like a wall.';HINTS[16]='Gates block the echo too. Check where each move and its echo will go.';HINTS[17]='Two gates. Check every echo against them.';
 let li=0,st,T=[],busy=false,pend=null,gen=0,cell=60,onPath=true;
 const COACH={15:['Swipe {n}. The arrow cell is a one-way gate: tiles can only enter it moving in the arrow direction.','Swipe {n}. Gates block the echo too.','Swipe {n} to finish.'],0:['Swipe {n}. Every tile moves one step.','Swipe {n} again. A tile pushing into its blocked match makes both vanish.'],1:['Swipe {n}. Your first move has no echo.','Swipe {n}. Watch the ECHO: after your move, your previous move repeats by itself.','Swipe {n}. The echo finishes the match for you.']};
 function coach(){const lv=LEVELS[li],c=COACH[li]&&COACH[li][st.moves];const h=$('hint');
- if(c&&onPath&&!st.won){h.textContent=c.replace('{n}',AR[lv.solution[st.moves]]);h.className='coach'}else{h.textContent=HINTS[li]||'';h.className=''}}
+ if(c&&onPath&&!st.won){h.textContent=c.replace('{n}',AR[lv.solution[st.moves]]);h.className='coach'}else{h.textContent=lv.hint||HINTS[li]||'';h.className=''}}
 const SAVE='omm_v1';let save={stars:{},best:{}};
 try{save=Object.assign(save,JSON.parse(localStorage.getItem(SAVE)||'{}'))}catch(e){}
 const persist=()=>{try{localStorage.setItem(SAVE,JSON.stringify(save))}catch(e){}};
-const unlocked=i=>i===0||(save.stars[LEVELS[i-1].id]||0)>0;
+const CH=LEVELS.chapters,chapterOf=i=>CH.find(c=>LEVELS[i].id>=c.from&&LEVELS[i].id<=c.to);
+const starsBefore=id=>LEVELS.reduce((n,l)=>n+(l.id<id?(save.stars[l.id]||0):0),0),chOpen=c=>starsBefore(c.from)>=c.need;
+const unlocked=i=>chOpen(chapterOf(i))&&(i===0||(save.stars[LEVELS[i-1].id]||0)>0);
+let P=[];function pulseSync(){P.forEach(p=>p.el.classList.toggle('open',(p.ch==='z')!==(st.moves%2===0)))}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const pos=t=>`translate(${t.c*cell}px,${t.r*cell}px)`;
 function place(t){t.el.style.transform=pos(t);t.el.style.setProperty('--tf',pos(t))}
@@ -243,14 +320,14 @@ function layout(){const g=LEVELS[li].rows,R=g.length,C=g[0].length;
  cell=Math.floor(Math.min((innerWidth-32)/C,(innerHeight*.5)/R,110));
  const b=$('board');b.style.width=cell*C+'px';b.style.height=cell*R+'px';b.style.setProperty('--c',cell+'px');
  $('ghost')&&($('ghost').style.fontSize=cell*1.6+'px');
- b.querySelectorAll('.cell,.wall,.gate').forEach(e=>e.style.transform=`translate(${e.dataset.c*cell}px,${e.dataset.r*cell}px)`);T.forEach(t=>!t.dead&&place(t))}
+ b.querySelectorAll('.cell,.wall,.gate,.pit,.pulse').forEach(e=>e.style.transform=`translate(${e.dataset.c*cell}px,${e.dataset.r*cell}px)`);T.forEach(t=>!t.dead&&place(t))}
 function hud(){$('lv').textContent=LEVELS[li].id;$('mv').textContent=st.moves;$('par').textContent=LEVELS[li].solution.length;
- $('ea').textContent=st.last?AR[st.last]:'·';coach();$('prev').disabled=li===0;$('next').disabled=li>=LEVELS.length-1||!unlocked(li+1)}
-function load(i){dtok++;if(st){if(i===li)track('restarts');else if(!st.won&&st.moves>0)track('abandon')}gen++;busy=false;pend=null;li=i;st=makeState(LEVELS[i].rows);T=[];track('starts');t0=Date.now();
+ $('lim').textContent=LEVELS[li].limit;const pl=echoPlan(st.mode,st.hist);$('ea').textContent=pl.length?pl.map(d=>AR[d]).join(''):'·';$('em').textContent=st.mode==='normal'?'':st.mode.toUpperCase();pulseSync();coach();$('prev').disabled=li===0;$('next').disabled=li>=LEVELS.length-1||!unlocked(li+1)}
+function load(i){dtok++;if(st){if(i===li)track('restarts');else if(!st.won&&st.moves>0)track('abandon')}gen++;busy=false;pend=null;li=i;st=makeState(LEVELS[i].rows,{echo:LEVELS[i].echo});T=[];P=[];track('starts');t0=Date.now();
  const b=$('board');b.innerHTML='<div id="ghost"></div>';$('ov').classList.remove('on');onPath=true;
  LEVELS[i].rows.forEach((row,r)=>[...row].forEach((ch,c)=>{
   const mk=(cls)=>{const e=document.createElement('div');e.className=cls;e.dataset.r=r;e.dataset.c=c;b.appendChild(e);return e};
-  const gc=GL[ch];const ge=mk(ch==='#'?'wall':gc?'gate':'cell');if(gc)ge.dataset.a=gc;
+  const gc=GL[ch];const pu=ch==='y'||ch==='z';const ge=mk(ch==='#'?'wall':gc?'gate':ch==='o'?'pit':pu?'pulse':'cell');if(gc)ge.dataset.a=gc;if(pu)P.push({el:ge,ch});
   if(/[A-Z]/.test(ch)){const el=document.createElement('div');el.className='t '+ch;el.innerHTML='<i></i>';b.appendChild(el);T.push({el,r,c})}}));
  layout();hud()}
 async function run(d){
@@ -258,32 +335,35 @@ async function run(d){
  const r=play(st,d);
  if(r.noop){SFX.fail();$('board').animate([{transform:'translateX(0)'},{transform:'translateX(-5px)'},{transform:'translateX(5px)'},{transform:'translateX(0)'}],{duration:150});return}
  const my=gen;busy=true;if(d!==LEVELS[li].solution[st.moves])onPath=false;st=r.state;$('mv').textContent=st.moves;
- const bd=$('board');
+ const bd=$('board'),fast=r.events.filter(e=>e.type==='echo').length>1; // double echo: tighter phases so a turn stays quick
  for(const ev of r.events){
   const echo=ev.type==='echo';echo?SFX.echo():SFX.move();if(ev.matches)setTimeout(SFX.match,echo?170:60);
   if(echo){$('ea').textContent=AR[ev.dir];$('echo').classList.add('fire');$('ghost').textContent=AR[ev.dir];
    $('ghost').animate([{opacity:0,transform:'scale(.7)'},{opacity:.5,transform:'scale(1)',offset:.25},{opacity:.5,offset:.75},{opacity:0}],{duration:640});
-   bd.dataset.e=ev.dir;await sleep(170);if(my!==gen)return}
-  bd.style.setProperty('--d',echo?'.32s':'.16s');
+   bd.dataset.e=ev.dir;await sleep(fast?90:170);if(my!==gen)return}
+  bd.style.setProperty('--d',echo?(fast?'.2s':'.32s'):'.16s');
   const moves=ev.tiles.map(x=>({t:T.find(t=>!t.dead&&t.r===x.from[0]&&t.c===x.from[1]),x}));
-  for(const {t,x} of moves){if(!t)continue;if(x.matched){t.dead=true;t.el.classList.add('pop');setTimeout(()=>t.el.remove(),260)}else{t.r=x.to[0];t.c=x.to[1];place(t)}}
-  await sleep(echo?400:190);if(my!==gen)return;
+  for(const {t,x} of moves){if(!t)continue;if(x.matched||x.lost){if(x.lost){t.r=x.to[0];t.c=x.to[1];place(t);SFX.dead()}t.dead=true;t.el.classList.add('pop');setTimeout(()=>t.el.remove(),260)}else{t.r=x.to[0];t.c=x.to[1];place(t)}}
+  await sleep(echo?(fast?250:400):190);if(my!==gen)return;
   if(echo){delete bd.dataset.e;$('echo').classList.remove('fire')}}
  busy=false;hud();
  if(st.won){await sleep(260);if(my===gen)win()}
+ else if(st.lost){await sleep(420);if(my===gen)fail('LOST A TILE','A tile fell into a pit.')}
+ else if(st.moves>=LEVELS[li].limit){await sleep(300);if(my===gen)fail('OUT OF MOVES','The limit was '+LEVELS[li].limit+'. Par is '+LEVELS[li].solution.length+'.')}
  else if(pend){const p=pend;pend=null;run(p)}
  else check()}
 let dtok=0;
-function check(){const my=++dtok,snap=st,g=deadSearch(st);
+function fail(t,m){SFX.dead();track('dead');$('ovc').innerHTML=`<h2>${t}</h2><p>${m}</p><div class="row"><button class="main" id="again">↺ RETRY</button></div>`;$('ov').classList.add('on');$('again').onclick=()=>load(li)}
+function check(){const my=++dtok,snap=st,g=canFinish(st,LEVELS[li].limit-st.moves);
  const tick=()=>{if(my!==dtok||snap!==st)return;const t=performance.now();let r;do{r=g.next()}while(!r.done&&performance.now()-t<6);
-  if(!r.done)setTimeout(tick,0);else if(r.value){$('hint').textContent='No solution from here. Restart.';$('hint').className='coach';SFX.dead();track('dead')}};
+  if(!r.done)setTimeout(tick,0);else if(r.value===false){$('hint').textContent='Out of reach from here. Restart.';$('hint').className='coach';SFX.dead();track('dead')}};
  setTimeout(tick,60)}
 function win(){const lv=LEVELS[li],opt=lv.solution.length,s=stars(st.moves,opt);SFX.win();track('wins');track('moves',st.moves);track('ms',Date.now()-t0);
  const prev=save.stars[lv.id]||0;if(s>prev)save.stars[lv.id]=s;
  if(!save.best[lv.id]||st.moves<save.best[lv.id])save.best[lv.id]=st.moves;persist();
- const last=li>=LEVELS.length-1;
- $('ovc').innerHTML=`<h2>CLEARED</h2><div class="stars">${'★'.repeat(s)}<span style="opacity:.25">${'★'.repeat(3-s)}</span></div><p>${st.moves} moves · par ${opt} · best ${save.best[lv.id]}</p><div class="row"><button id="again">↺</button><button class="main" id="go">${last?'MORE SOON':'NEXT ›'}</button></div>`;
- $('ov').classList.add('on');$('again').onclick=()=>load(li);$('go').onclick=()=>last?scr('lsel'):load(li+1);hud()}
+ const nx=li+1<LEVELS.length,open=nx&&unlocked(li+1);let note='';if(nx&&!open){const c=chapterOf(li+1),need=c.need-starsBefore(c.from);if(need>0)note=`<p style="color:var(--b)">Need ${need} more ★ to open ${c.name}. Replay levels for better stars.</p>`}
+ $('ovc').innerHTML=`<h2>CLEARED</h2><div class="stars">${'★'.repeat(s)}<span style="opacity:.25">${'★'.repeat(3-s)}</span></div><p>${st.moves}/${lv.limit} moves · par ${opt} · best ${save.best[lv.id]}</p>${note}<div class="row"><button id="again">↺</button><button class="main" id="go">${open?'NEXT ›':'LEVELS'}</button></div>`;
+ $('ov').classList.add('on');$('again').onclick=()=>load(li);$('go').onclick=()=>open?load(li+1):scr('lsel');hud()}
 const DIR={ArrowUp:'U',ArrowDown:'D',ArrowLeft:'L',ArrowRight:'R',w:'U',s:'D',a:'L',d:'R'};
 addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelector('.scr.on')?closeScr():scr('pause');return}if(document.querySelector('.scr.on'))return;if(e.key==='r'||e.key==='R')return load(li);const d=DIR[e.key];if(d&&!$('ov').classList.contains('on')){e.preventDefault();run(d)}});
 let sx,sy;addEventListener('pointerdown',e=>{sx=e.clientX;sy=e.clientY});
@@ -301,8 +381,9 @@ let cur=null,prv=null;
 function scr(id){prv=cur;cur=id;document.querySelectorAll('.scr').forEach(e=>e.classList.toggle('on',e.id===id));if(id==='lsel')grid();if(id==='menu')menu();snd()}
 function closeScr(){cur=null;document.querySelectorAll('.scr').forEach(e=>e.classList.remove('on'))}
 function snd(){document.querySelectorAll('.snd').forEach(b=>b.textContent='SOUND '+(save.sound===false?'OFF':'ON'))}
-function grid(){const g=$('grid');g.innerHTML='';LEVELS.forEach((lv,i)=>{const b=document.createElement('button'),s=save.stars[lv.id]||0,u=unlocked(i);b.className='lb'+(u?'':' lock');b.disabled=!u;b.innerHTML=`<b>${lv.id}</b><small>${u?'★'.repeat(s)+'☆'.repeat(3-s):'🔒'}</small>`;b.onclick=()=>{closeScr();load(i)};g.appendChild(b)})}
-const nextIdx=()=>{const i=LEVELS.findIndex(l=>!(save.stars[l.id]>0));return i<0?0:i};
+function grid(){const g=$('grid');g.innerHTML='';CH.forEach(c=>{const op=chOpen(c),h=document.createElement('div');h.className='ch'+(op?'':' lock');h.innerHTML=`<b>${c.name}</b><span>${op?c.from+'–'+c.to:'🔒 need '+(c.need-starsBefore(c.from))+' more ★'}</span>`;g.appendChild(h);
+ LEVELS.forEach((lv,i)=>{if(lv.id<c.from||lv.id>c.to)return;const b=document.createElement('button'),s=save.stars[lv.id]||0,u=unlocked(i);b.className='lb'+(u?'':' lock');b.disabled=!u;b.innerHTML=`<b>${lv.id}</b><small>${u?'★'.repeat(s)+'☆'.repeat(3-s):'🔒'}</small>`;b.onclick=()=>{closeScr();load(i)};g.appendChild(b)})})}
+const nextIdx=()=>{const i=LEVELS.findIndex((l,k)=>!(save.stars[l.id]>0)&&unlocked(k));return i<0?0:i};
 function menu(){const t=LEVELS.reduce((n,l)=>n+(save.stars[l.id]||0),0);$('tot').textContent='★ '+t+'/'+LEVELS.length*3;$('play').textContent=t?'CONTINUE':'PLAY'}
 $('play').onclick=()=>{const i=nextIdx();closeScr();if(!(i===li&&st.moves>0&&!st.won))load(i)};
 $('lvls').onclick=()=>scr('lsel');$('lback').onclick=()=>scr(prv==='pause'?'pause':'menu');
